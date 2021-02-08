@@ -43,10 +43,13 @@ def main():
 
     # Solve problem using the genetic algorithm
     best_state, best_fitness = mlrose.genetic_alg(
-        problem_fit, mutation_prob=0.2, max_attempts=100
+        problem_fit, mutation_prob=0.3, max_attempts=1000
     )
 
-    # rotate until 0 is at beginning, then also add 0 to the end
+    print("The best state found is: ", best_state)
+    print("The fitness at the best state is: ", best_fitness)
+
+    # rotate until 0 is at beginning, and add 0 again at the end to create a loop, so [2 0 1 3] => [0 1 3 2 0]
     start = 0
     for i, v in enumerate(best_state):
         if v == 0:
@@ -57,12 +60,9 @@ def main():
     for s in best_state_ordered:
         zones_to_visit_ordered.append(zones_to_visit[s])
 
-    print("The best state found is: ", best_state)
-    print("The fitness at the best state is: ", best_fitness)
-
-    _get_cxb_link(point, zones_to_visit_ordered)
-    print("Reference:")
-    _get_cxb_link(point, zones_to_visit)
+    _dump_cxb_link(point, zones_to_visit_ordered)
+    # print("Reference:")
+    # _dump_cxb_link(point, zones_to_visit)
 
 
 def get_zones_for_user(user_id):
@@ -86,7 +86,7 @@ def get_zones_for_user(user_id):
     return glom(user_data, "zones")
 
 
-def get_zones_for_point(point, radius=3):
+def get_zones_for_point(point, radius=2):
     """
     For a given starting point (for example, your house or current location)
     get all zones in a rectangular zone around said point.
@@ -160,7 +160,7 @@ def distance(p1lon, p1lat, p2lon, p2lat):
     return float(glom(geoj, "features.0.properties.track-length"))
 
 
-def _get_cxb_link(point, zone_data):
+def _dump_cxb_link(point, zone_data):
     """Dump link for route planning, mostly for debugging O_o"""
 
     print(

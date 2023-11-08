@@ -4,12 +4,14 @@ import sys
 sys.modules['sklearn.externals.six'] = six
 
 import requests
+import logging
 import json
 import mlrose
 from glom import glom
 from turfpy.transformation import circle
 from turfpy.measurement import bbox  # , distance
 from geojson import Point, Feature
+import urllib.parse
 
 
 def main():
@@ -60,6 +62,8 @@ def main():
         if v == 0:
             start = i
     best_state_ordered = list(best_state[start:]) + list(best_state[:start]) + [0]
+
+    logging.info(f"Best state ordered {best_state_ordered}")
 
     zones_to_visit_ordered = []
     for s in best_state_ordered:
@@ -151,7 +155,7 @@ def get_distances(zone_data):
 
             distances.append((i, j, dist,))
 
-            print(f"{zone_data[i]['name']} done")
+        print(f"{zone_data[i]['name']} done")
 
     print("Pairwise distance calculation done!")
 
@@ -173,15 +177,29 @@ def _dump_cxb_link(point, zone_data):
     """Dump link for route planning, mostly for debugging O_o"""
 
     print(
-        "https://routing.cxberlin.net/#map=14/{}/{}/standard&lonlats={}&profile=trekking".format(
+        "https://routing.cxberlin.net/#map=14/{}/{}/standard&lonlats={}&pois={}&profile=trekking".format(
             glom(point, "coordinates.1"),
             glom(point, "coordinates.0"),
             ";".join(
                 ["{},{}".format(x["longitude"], x["latitude"]) for x in zone_data]
+            ),
+            ";".join(
+                ["{},{},{}".format(x["longitude"], x["latitude"], urllib.parse.quote_plus(x["name"])) for x in zone_data]
             ),
         )
     )
 
 
 if __name__ == "__main__":
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
     main()

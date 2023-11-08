@@ -1,3 +1,8 @@
+import six
+import sys
+
+sys.modules['sklearn.externals.six'] = six
+
 import requests
 import json
 import mlrose
@@ -9,7 +14,7 @@ from geojson import Point, Feature
 
 def main():
     # user_zones = get_zones_for_user(308884)
-    point = Point((13.440399,52.517442))
+    point = Point((10.028393,53.622673))
     zone_data = get_zones_for_point(point)
 
     zones_to_visit = []
@@ -86,14 +91,14 @@ def get_zones_for_user(user_id):
     return glom(user_data, "zones")
 
 
-def get_zones_for_point(point, radius=2):
+def get_zones_for_point(point, radius=2, cap=30):
     """
     For a given starting point (for example, your house or current location)
     get all zones in a rectangular zone around said point.
 
     Point is to be specified as geojson.Point
 
-    Optional "radius" kwarg can be used to specify radius of the circle in kilometers. Defaults to 5
+    Optional "radius" kwarg can be used to specify radius of the circle in kilometers. Defaults to 2
     """
     # first we draw a circle, around the point, then determine a bbox around said circle
     box = bbox(circle(center=Feature(geometry=point), radius=radius))
@@ -109,12 +114,12 @@ def get_zones_for_point(point, radius=2):
     zone_data = response.json()
 
     print(
-        "We have found {} zones for the given point {},{}".format(
-            len(zone_data), glom(point, "coordinates.1"), glom(point, "coordinates.0")
+        "We have found {} zones for the given point {},{}. Capping at {}".format(
+            len(zone_data), glom(point, "coordinates.1"), glom(point, "coordinates.0"), cap
         )
     )
 
-    return zone_data
+    return zone_data[:cap]
 
 
 def get_distances(zone_data):
@@ -146,15 +151,19 @@ def get_distances(zone_data):
 
             distances.append((i, j, dist,))
 
+            print(f"{zone_data[i]['name']} done")
+
+    print("Pairwise distance calculation done!")
+
     return distances
 
 
 def distance(p1lon, p1lat, p2lon, p2lat):
-    url = "https://brouter.cxberlin.com/brouter?lonlats={},{}|{},{}&profile=trekking-gravel&alternativeidx=0&format=geojson".format(
+    url = "https://brouter.cxberlin.net/brouter?lonlats={},{}|{},{}&profile=trekking&alternativeidx=0&format=geojson".format(
         p1lon, p1lat, p2lon, p2lat
     )
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=20)
     geoj = response.json()
 
     return float(glom(geoj, "features.0.properties.track-length"))
@@ -164,7 +173,7 @@ def _dump_cxb_link(point, zone_data):
     """Dump link for route planning, mostly for debugging O_o"""
 
     print(
-        "https://routing.cxberlin.com/#map=14/{}/{}/standard&lonlats={}&profile=trekking-gravel".format(
+        "https://routing.cxberlin.net/#map=14/{}/{}/standard&lonlats={}&profile=trekking".format(
             glom(point, "coordinates.1"),
             glom(point, "coordinates.0"),
             ";".join(
